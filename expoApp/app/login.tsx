@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ThemedLogo } from '@/components/ThemedLogo';
 import { loginSchool, loginGlobal } from '@/src/services/auth';
 
 export default function LoginScreen() {
@@ -20,10 +21,10 @@ export default function LoginScreen() {
   const [schoolCode, setSchoolCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorModal, setErrorModal] = useState<{ show: boolean; title: string; message: string }>({ 
-    show: false, 
-    title: '', 
-    message: '' 
+  const [errorModal, setErrorModal] = useState<{ show: boolean; title: string; message: string }>({
+    show: false,
+    title: '',
+    message: ''
   });
 
   const showError = (title: string, message: string) => {
@@ -44,7 +45,7 @@ export default function LoginScreen() {
       if (!res || !res.success) {
         const errorMsg = res?.message || 'Login failed';
         const lowerMsg = errorMsg.toLowerCase();
-        
+
         // Provide specific error messages based on the response
         // Check for specific error patterns
         if (lowerMsg.includes('incorrect password') || (lowerMsg.includes('password') && !lowerMsg.includes('school'))) {
@@ -69,7 +70,7 @@ export default function LoginScreen() {
       console.error('Login error:', e);
       const errorMessage = e?.response?.data?.message || e?.message || '';
       const lowerMsg = errorMessage.toLowerCase();
-      
+
       // Provide specific error messages
       if (lowerMsg.includes('incorrect password') || (lowerMsg.includes('password') && !lowerMsg.includes('school'))) {
         showError('Incorrect Password', 'The password you entered is wrong. Please check your password and try again.');
@@ -96,8 +97,7 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.logoContainer}>
             <View style={styles.logoPlaceholder}>
-              <Image
-                source={require('@/assets/images/logo.png')}
+              <ThemedLogo
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -194,7 +194,7 @@ function getStyles(isDark: boolean) {
     scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
     logoContainer: { alignItems: 'center', marginTop: 20, marginBottom: 30 },
     logoPlaceholder: { alignItems: 'center' },
-    logoImage: { width: 80, height: 80, marginBottom: 10 },
+    logoImage: { width: 125, height: 125, marginBottom: 9 },
     logoTitle: { fontSize: 32, fontWeight: '700', color: isDark ? '#93C5FD' : '#1E3A8A', marginBottom: 4 },
     logoSubtitle: { fontSize: 10, color: isDark ? '#93C5FD' : '#1E3A8A', letterSpacing: 2 },
     welcomeContainer: { alignItems: 'center', marginBottom: 24 },

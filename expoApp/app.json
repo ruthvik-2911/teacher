@@ -4,10 +4,9 @@
     "slug": "expoApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/images/1_20260423_125948_0000.png",
     "scheme": "expoapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.goodsynk.erp"
@@ -15,12 +14,10 @@
     "android": {
       "package": "com.goodsynk.erp",
       "versionCode": 1,
-      "name": "GOODSYNK ERP",
-      "label": "GOODSYNK ERP",
-      "icon": "./assets/images/logo.png",
+      "icon": "./assets/images/1_20260423_125948_0000.png",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/logo.png",
+        "foregroundImage": "./assets/images/1_20260423_125948_0000.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
@@ -49,7 +46,9 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
@@ -57,8 +56,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "3d4f3aa2-4222-46ae-92b1-b1e88cfa3e56"
+        "projectId": "c0e24526-3b8b-4c3a-8e9b-36e1c32927fe"
       }
-    }
+    },
+    "owner": "ruthvik_2911"
   }
 }

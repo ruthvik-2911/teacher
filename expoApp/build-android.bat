@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo ERP EduLogix - Android APK Build Script
+echo ERP GOODSYNK - Android APK Build Script
 echo ========================================
 echo.
 

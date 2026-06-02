@@ -39,6 +39,28 @@ export interface Student {
     attendancePercentage?: number;
   };
   averageMarks?: number;
+  parentDetails?: {
+    fatherName?: string;
+    motherName?: string;
+    guardianName?: string;
+  };
+  contact?: {
+    primaryPhone?: string;
+    secondaryPhone?: string;
+  };
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    fullAddress?: string;
+    permanent?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+    };
+  };
 }
 
 export interface Assignment {
@@ -170,11 +192,11 @@ export async function getClasses(): Promise<Class[]> {
     if (!schoolCode) throw new Error('No school code found');
 
     const response = await api.get(`/schools/${schoolCode}/classes`);
-    
+
     if (response.data?.success && response.data?.data) {
       return response.data.data;
     }
-    
+
     return [];
   } catch (error: any) {
     console.error('[TEACHER SERVICE] Error fetching classes:', error);
@@ -188,12 +210,12 @@ export async function getClasses(): Promise<Class[]> {
 export async function getStudentsByClassSection(className: string, section?: string): Promise<Student[]> {
   try {
     console.log('[TEACHER SERVICE] Fetching students for class:', className, 'section:', section);
-    
+
     // Build query parameters - backend supports class and section filters
-    const params: any = { 
+    const params: any = {
       class: className  // Use 'class' not 'className'
     };
-    
+
     if (section && section !== 'ALL') {
       params.section = section;
     }
@@ -202,13 +224,13 @@ export async function getStudentsByClassSection(className: string, section?: str
 
     // Use the users/role/student endpoint which teachers have access to
     const response = await api.get('/users/role/student', { params });
-    
+
     console.log('[TEACHER SERVICE] Students API response:', {
       success: response.data?.success,
       count: response.data?.count,
       dataLength: response.data?.data?.length
     });
-    
+
     // Backend returns data in 'data' field, not 'users'
     if (response.data?.success && response.data?.data) {
       const students = response.data.data.map((user: any) => ({
@@ -218,12 +240,35 @@ export async function getStudentsByClassSection(className: string, section?: str
         email: user.email,
         studentDetails: user.studentDetails,
         academicInfo: user.academicInfo,
-        class: user.academicInfo?.class || user.studentDetails?.currentClass || user.class,
-        section: user.academicInfo?.section || user.studentDetails?.currentSection || user.section,
-        rollNumber: user.studentDetails?.rollNumber || user.rollNumber,
-        status: user.status
+        // Improved class/section mapping matching the JSON structure
+        class: user.studentDetails?.academic?.currentClass || user.class || user.className || user.academicInfo?.class || user.studentDetails?.currentClass,
+        section: user.studentDetails?.academic?.currentSection || user.section || user.sectionName || user.academicInfo?.section || user.studentDetails?.currentSection,
+        rollNumber: user.studentDetails?.rollNumber || user.rollNumber || user.studentDetails?.rollNo || user.rollNo,
+        status: user.status,
+        // Parents mapping matching studentDetails.family structure
+        parentDetails: {
+          fatherName: user.studentDetails?.family?.father?.name || user.parentDetails?.fatherName,
+          motherName: user.studentDetails?.family?.mother?.name || user.parentDetails?.motherName,
+          guardianName: user.guardianName || user.studentDetails?.guardianName
+        },
+        // Contact mapping (primaryPhone is already working)
+        contact: user.contact || user.studentDetails?.contact,
+        // Address mapping matching address.permanent structure
+        address: {
+          street: user.address?.permanent?.street || user.address?.street,
+          city: user.address?.permanent?.city || user.address?.city,
+          state: user.address?.permanent?.state || user.address?.state,
+          zipCode: user.address?.permanent?.pincode || user.address?.zipCode,
+          fullAddress: user.address?.permanent ?
+            `${user.address.permanent.street || ''}, ${user.address.permanent.city || ''}, ${user.address.permanent.pincode || ''}`.trim() :
+            user.fullAddress
+        }
       }));
-      
+
+      if (students.length > 0) {
+        console.log('[TEACHER SERVICE] Sample student data structure:', JSON.stringify(response.data.data[0], null, 2));
+      }
+
       console.log('[TEACHER SERVICE] Mapped', students.length, 'students');
       if (students.length > 0) {
         console.log('[TEACHER SERVICE] Sample student:', {
@@ -233,10 +278,10 @@ export async function getStudentsByClassSection(className: string, section?: str
           section: students[0].section
         });
       }
-      
+
       return students;
     }
-    
+
     console.log('[TEACHER SERVICE] No students found - response structure:', Object.keys(response.data || {}));
     return [];
   } catch (error: any) {
@@ -252,9 +297,9 @@ export async function getTeacherAssignments(): Promise<Assignment[]> {
   try {
     const userData = await AsyncStorage.getItem('userData');
     if (!userData) throw new Error('No user data found');
-    
+
     const user = JSON.parse(userData);
-    
+
     // Get current academic year from school settings
     let academicYear: string | undefined;
     try {
@@ -264,22 +309,22 @@ export async function getTeacherAssignments(): Promise<Assignment[]> {
     } catch (err) {
       console.log('[TEACHER SERVICE] Could not fetch academic year, will show all assignments');
     }
-    
+
     const params: any = {
       teacherId: user.userId || user._id,
     };
-    
+
     // Add academic year filter if available
     if (academicYear) {
       params.academicYear = academicYear;
       console.log('[TEACHER SERVICE] Filtering assignments by academic year:', academicYear);
     }
-    
+
     const response = await api.get('/assignments', { params });
-    
+
     const assignments = response.data.assignments || response.data.data || [];
     console.log('[TEACHER SERVICE] Fetched', assignments.length, 'assignments for current academic year');
-    
+
     return assignments;
   } catch (error: any) {
     console.error('[TEACHER SERVICE] Error fetching assignments:', error);
@@ -293,20 +338,20 @@ export async function getTeacherAssignments(): Promise<Assignment[]> {
 export async function getTeacherMessages(): Promise<Message[]> {
   try {
     console.log('[TEACHER SERVICE] Fetching teacher messages...');
-    
+
     const response = await api.get('/teacher/messages');
-    
+
     console.log('[TEACHER SERVICE] Messages response:', {
       success: response.data?.success,
       hasData: !!response.data?.data,
       hasMessages: !!response.data?.messages,
       messagesCount: (response.data?.data?.messages || response.data?.messages || response.data?.data || []).length
     });
-    
+
     const messages = response.data?.data?.messages || response.data?.messages || response.data?.data || [];
-    
+
     console.log('[TEACHER SERVICE] Fetched', messages.length, 'messages for teacher');
-    
+
     return messages.map((msg: any) => ({
       _id: msg.id || msg._id,
       id: msg.id || msg._id,
@@ -337,11 +382,11 @@ export async function getTeacherMessages(): Promise<Message[]> {
 export async function getTeacherProfile(): Promise<TeacherProfile | null> {
   try {
     const response = await api.get('/users/my-profile');
-    
+
     if (response.data?.success && response.data?.data) {
       return response.data.data;
     }
-    
+
     return response.data || null;
   } catch (error: any) {
     console.error('[TEACHER SERVICE] Error fetching teacher profile:', error);
@@ -356,13 +401,13 @@ export async function getClassSubjects(className: string): Promise<any[]> {
   try {
     console.log('[TEACHER SERVICE] Fetching class subjects for:', className);
     const response = await api.get(`/class-subjects/class/${className}`);
-    
+
     console.log('[TEACHER SERVICE] Class subjects response:', response.data);
-    
+
     if (response.data?.success && response.data?.data?.subjects) {
       return response.data.data.subjects.filter((subject: any) => subject.isActive !== false);
     }
-    
+
     return response.data?.subjects || [];
   } catch (error: any) {
     console.error('[TEACHER SERVICE] Error fetching class subjects:', error);
@@ -377,17 +422,17 @@ export async function getTeacherSubjects(): Promise<any[]> {
   try {
     const userData = await AsyncStorage.getItem('userData');
     if (!userData) throw new Error('No user data found');
-    
+
     const user = JSON.parse(userData);
     const teacherId = user._id || user.userId;
-    
+
     console.log('[TEACHER SERVICE] Fetching subjects for teacher:', teacherId);
-    
+
     // First try to get teacher-specific subjects
     try {
       const response = await api.get(`/subjects/teacher/${teacherId}`);
       console.log('[TEACHER SERVICE] Teacher subjects response:', response.data);
-      
+
       if (response.data?.success && response.data?.data && response.data.data.length > 0) {
         console.log('[TEACHER SERVICE] Found teacher-specific subjects:', response.data.data.length);
         return response.data.data;
@@ -395,23 +440,23 @@ export async function getTeacherSubjects(): Promise<any[]> {
     } catch (teacherSubjectsError: any) {
       console.log('[TEACHER SERVICE] No teacher-specific subjects found, trying class subjects');
     }
-    
+
     // If no teacher-specific subjects, try to get subjects from teacher's classes
     console.log('[TEACHER SERVICE] Attempting to fetch class subjects as fallback');
-    
+
     // Get teacher's classes first
     const classesResponse = await getClasses();
     console.log('[TEACHER SERVICE] Teacher classes:', classesResponse);
-    
+
     if (classesResponse && classesResponse.length > 0) {
       // Get subjects from the first class as fallback
       const firstClass = classesResponse[0];
       const className = firstClass.className;
-      
+
       if (className) {
         console.log('[TEACHER SERVICE] Fetching subjects for class:', className);
         const classSubjects = await getClassSubjects(className);
-        
+
         if (classSubjects && classSubjects.length > 0) {
           console.log('[TEACHER SERVICE] Found class subjects as fallback:', classSubjects.length);
           // Transform class subjects to match teacher subjects format
@@ -425,10 +470,10 @@ export async function getTeacherSubjects(): Promise<any[]> {
         }
       }
     }
-    
+
     console.log('[TEACHER SERVICE] No subjects found - neither teacher-specific nor class subjects');
     return [];
-    
+
   } catch (error: any) {
     console.error('[TEACHER SERVICE] Error fetching subjects:', error);
     return [];
@@ -446,11 +491,11 @@ export async function getClassAttendance(className: string, section: string, dat
     }
 
     const response = await api.get('/attendance', { params });
-    
+
     if (response.data?.success && response.data?.data?.records) {
       return response.data.data.records;
     }
-    
+
     return response.data?.records || response.data?.data || [];
   } catch (error: any) {
     console.error('[TEACHER SERVICE] Error fetching class attendance:', error);
@@ -482,11 +527,11 @@ export async function getTeacherResults(className?: string, section?: string, su
     if (subject) params.subject = subject;
 
     const response = await api.get('/results/teacher/view', { params });
-    
+
     if (response.data?.success && response.data?.data) {
       return response.data.data;
     }
-    
+
     return response.data?.results || response.data?.data || [];
   } catch (error: any) {
     console.error('[TEACHER SERVICE] Error fetching results:', error);
@@ -514,7 +559,7 @@ export async function createAssignment(assignmentData: CreateAssignmentData): Pr
   try {
     const schoolCode = await AsyncStorage.getItem('schoolCode');
     const formData = new FormData();
-    
+
     // Add text fields
     Object.keys(assignmentData).forEach(key => {
       if (key !== 'attachments' && assignmentData[key as keyof CreateAssignmentData]) {
@@ -530,10 +575,10 @@ export async function createAssignment(assignmentData: CreateAssignmentData): Pr
     // Add attachments if any
     if (assignmentData.attachments && assignmentData.attachments.length > 0) {
       console.log('[TEACHER SERVICE] Adding', assignmentData.attachments.length, 'attachment(s)');
-      
+
       for (let index = 0; index < assignmentData.attachments.length; index++) {
         const file = assignmentData.attachments[index];
-        
+
         try {
           // For web platform, convert blob URI to File object
           if (file.uri.startsWith('blob:')) {
@@ -566,7 +611,7 @@ export async function createAssignment(assignmentData: CreateAssignmentData): Pr
         'Content-Type': 'multipart/form-data',
       },
     });
-    
+
     console.log('[TEACHER SERVICE] Assignment created successfully');
     return response.data?.success || false;
   } catch (error: any) {
@@ -582,7 +627,7 @@ export async function createAssignment(assignmentData: CreateAssignmentData): Pr
 export async function updateAssignment(assignmentId: string, assignmentData: Partial<CreateAssignmentData>): Promise<boolean> {
   try {
     const formData = new FormData();
-    
+
     // Add text fields
     Object.keys(assignmentData).forEach(key => {
       if (key !== 'attachments' && assignmentData[key as keyof CreateAssignmentData]) {
@@ -594,7 +639,7 @@ export async function updateAssignment(assignmentId: string, assignmentData: Par
     if (assignmentData.attachments && assignmentData.attachments.length > 0) {
       for (let index = 0; index < assignmentData.attachments.length; index++) {
         const file = assignmentData.attachments[index];
-        
+
         try {
           // For web platform, convert blob URI to File object
           if (file.uri && file.uri.startsWith('blob:')) {
@@ -625,7 +670,7 @@ export async function updateAssignment(assignmentId: string, assignmentData: Par
         'Content-Type': 'multipart/form-data',
       },
     });
-    
+
     return response.data?.success || false;
   } catch (error: any) {
     console.error('[TEACHER SERVICE] Error updating assignment:', error);
@@ -642,7 +687,7 @@ export async function gradeSubmission(submissionId: string, grade: number, feedb
       grade,
       feedback
     });
-    
+
     return response.data?.success || false;
   } catch (error: any) {
     console.error('[TEACHER SERVICE] Error grading submission:', error);
@@ -658,12 +703,12 @@ export async function cancelAssignment(assignmentId: string): Promise<boolean> {
     console.log('[TEACHER SERVICE] ========== DELETE ASSIGNMENT ==========');
     console.log('[TEACHER SERVICE] Assignment ID:', assignmentId);
     console.log('[TEACHER SERVICE] API endpoint:', `/assignments/${assignmentId}`);
-    
+
     const response = await api.delete(`/assignments/${assignmentId}`);
-    
+
     console.log('[TEACHER SERVICE] Response status:', response.status);
     console.log('[TEACHER SERVICE] Response data:', JSON.stringify(response.data, null, 2));
-    
+
     if (response.data?.success) {
       console.log('[TEACHER SERVICE] ✅ Assignment deleted successfully');
       return true;
@@ -678,7 +723,7 @@ export async function cancelAssignment(assignmentId: string): Promise<boolean> {
     console.error('[TEACHER SERVICE] Error response status:', error.response?.status);
     console.error('[TEACHER SERVICE] Error response data:', JSON.stringify(error.response?.data, null, 2));
     console.error('[TEACHER SERVICE] Full error:', error);
-    
+
     // Throw error with more details for UI
     const errorMessage = error.response?.data?.message || error.message || 'Failed to delete assignment';
     throw new Error(errorMessage);

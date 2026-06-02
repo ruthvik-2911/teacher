@@ -10,13 +10,7 @@ import { Platform } from 'react-native';
 const RUNTIME_BASE_URL = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || '';
 
 // Sensible defaults per platform
-const DEFAULT_BASE_URL = Platform.select({
-  // web: 'http://localhost:5050/api',
-  web: 'https://erp-backend-kfut.onrender.com/api',
-  android: 'https://erp-backend-kfut.onrender.com/api',
-  ios: 'http://localhost:5050/api',
-  default: 'http://localhost:5050/api',
-});
+const DEFAULT_BASE_URL = 'https://goodsync.onrender.com/api';
 
 export const ENV = {
   // Final API base URL: env override > platform default

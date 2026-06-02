@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
+import { ThemedLogo } from '@/components/ThemedLogo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTeacherAssignments, getClasses, Assignment, Class } from '@/src/services/teacher';
 import { getStudentMessages, Message } from '@/src/services/student';
@@ -33,7 +34,7 @@ export default function TeacherHomeScreen() {
       setTeacherName(displayName);
 
       console.log('[TEACHER HOME] Fetching teacher data...');
-      
+
       // Fetch data with error handling for each API call
       let messagesData: Message[] = [];
       let assignmentsData: Assignment[] = [];
@@ -123,8 +124,7 @@ export default function TeacherHomeScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Image
-              source={require('@/assets/images/logo.png')}
+            <ThemedLogo
               style={styles.logoIcon}
               resizeMode="contain"
             />
@@ -193,8 +193,8 @@ export default function TeacherHomeScreen() {
             </View>
           ) : (
             messages.map((msg, index) => (
-              <TouchableOpacity 
-                key={msg._id || index} 
+              <TouchableOpacity
+                key={msg._id || index}
                 style={styles.announcementCard}
                 onPress={() => router.push('/(tabs)/activity')}
               >
@@ -329,12 +329,12 @@ function getStyles(isDark: boolean) {
       alignItems: 'center',
     },
     logoIcon: {
-      width: 28,
-      height: 28,
-      marginRight: 8,
+      width: 60,
+      height: 60,
+      marginRight: 10,
     },
     logoText: {
-      fontSize: 16,
+      fontSize: 20,
       fontWeight: '700',
       color: isDark ? '#93C5FD' : '#1E3A8A',
     },
@@ -348,6 +348,7 @@ function getStyles(isDark: boolean) {
     },
     settingsIcon: {
       fontSize: 20,
+      color: isDark ? '#FFFFFF' : '#1F2937',
     },
     welcomeSection: {
       flexDirection: 'row',

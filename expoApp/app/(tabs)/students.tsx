@@ -20,6 +20,8 @@ export default function StudentsScreen() {
   const [selectedSection, setSelectedSection] = useState<string>(params.section || 'ALL');
   const [showClassDropdown, setShowClassDropdown] = useState(false);
   const [showSectionDropdown, setShowSectionDropdown] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -100,6 +102,12 @@ export default function StudentsScreen() {
            'Unknown';
   };
 
+  const handleStudentPress = (student: Student) => {
+    console.log('[STUDENTS] Selected student detail:', JSON.stringify(student, null, 2));
+    setSelectedStudent(student);
+    setShowDetailModal(true);
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -173,7 +181,12 @@ export default function StudentsScreen() {
                 </Text>
               </View>
               {students.map((student) => (
-                <View key={student._id || student.userId} style={styles.studentCard}>
+                <TouchableOpacity 
+                  key={student._id || student.userId} 
+                  style={styles.studentCard}
+                  onPress={() => handleStudentPress(student)}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.studentHeader}>
                     <View style={styles.studentIcon}>
                       <Text style={styles.studentIconText}>👤</Text>
@@ -181,15 +194,16 @@ export default function StudentsScreen() {
                     <View style={styles.studentInfo}>
                       <Text style={styles.studentName}>{getStudentDisplayName(student)}</Text>
                       <Text style={styles.studentId}>ID: {student.userId}</Text>
-                      {(student.studentDetails?.currentClass || student.academicInfo?.class) && (
+                      {(student.class || student.studentDetails?.currentClass || student.academicInfo?.class) && (
                         <Text style={styles.studentClass}>
-                          {student.studentDetails?.currentClass || student.academicInfo?.class}
-                          {student.studentDetails?.currentSection || student.academicInfo?.section
-                            ? ` - ${student.studentDetails?.currentSection || student.academicInfo?.section}`
+                          Class {student.class || student.studentDetails?.currentClass || student.academicInfo?.class}
+                          {student.section || student.studentDetails?.currentSection || student.academicInfo?.section
+                            ? ` - Section ${student.section || student.studentDetails?.currentSection || student.academicInfo?.section}`
                             : ''}
                         </Text>
                       )}
                     </View>
+                    <Text style={styles.viewDetailArrow}>›</Text>
                   </View>
                   {student.attendance && (
                     <View style={styles.studentStats}>
@@ -209,7 +223,7 @@ export default function StudentsScreen() {
                       )}
                     </View>
                   )}
-                </View>
+                </TouchableOpacity>
               ))}
             </>
           )}
@@ -294,6 +308,84 @@ export default function StudentsScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      {/* Student Detail Modal */}
+      <Modal
+        visible={showDetailModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDetailModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowDetailModal(false)}
+        >
+          <View style={styles.detailModalContent}>
+            <View style={styles.detailHeader}>
+              <View style={styles.detailIconContainer}>
+                <Text style={styles.detailIconLarge}>👤</Text>
+              </View>
+              <Text style={styles.detailStudentName}>
+                {selectedStudent ? getStudentDisplayName(selectedStudent) : ''}
+              </Text>
+              <Text style={styles.detailStudentId}>
+                ID: {selectedStudent?.userId}
+              </Text>
+            </View>
+
+            <View style={styles.detailDivider} />
+
+            <ScrollView style={styles.detailBody}>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Parent's Name</Text>
+                <Text style={styles.detailValue}>
+                  {selectedStudent?.parentDetails?.fatherName || selectedStudent?.parentDetails?.motherName || selectedStudent?.parentDetails?.guardianName || 'Not Provided'}
+                </Text>
+                {(selectedStudent?.parentDetails?.fatherName && selectedStudent?.parentDetails?.motherName) && (
+                  <Text style={styles.detailSubValue}>
+                    {selectedStudent.parentDetails.fatherName} (Father) & {selectedStudent.parentDetails.motherName} (Mother)
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Phone Number</Text>
+                <Text style={styles.detailValue}>
+                  {selectedStudent?.contact?.primaryPhone || 'Not Provided'}
+                </Text>
+                {selectedStudent?.contact?.secondaryPhone && (
+                  <Text style={styles.detailSubValue}>Alt: {selectedStudent.contact.secondaryPhone}</Text>
+                )}
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Address</Text>
+                <Text style={styles.detailValue}>
+                  {selectedStudent?.address?.fullAddress || 
+                   (selectedStudent?.address ? 
+                     `${selectedStudent.address.street || ''} ${selectedStudent.address.city || ''} ${selectedStudent.address.state || ''}`.trim() 
+                     : 'Not Provided')}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Class & Section</Text>
+                <Text style={styles.detailValue}>
+                  Class {selectedStudent?.class || selectedStudent?.studentDetails?.currentClass || selectedStudent?.academicInfo?.class || selectedClass || 'N/A'} - 
+                  Section {selectedStudent?.section || selectedStudent?.studentDetails?.currentSection || selectedStudent?.academicInfo?.section || (selectedSection === 'ALL' ? '' : selectedSection) || 'N/A'}
+                </Text>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowDetailModal(false)}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -528,6 +620,97 @@ function getStyles(isDark: boolean) {
       fontSize: 20,
       color: isDark ? '#60A5FA' : '#1E3A8A',
       fontWeight: '700',
+    },
+    // Detail Modal Styles
+    detailModalContent: {
+      backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+      borderRadius: 24,
+      padding: 24,
+      width: '90%',
+      maxWidth: 400,
+      maxHeight: '80%',
+      borderWidth: 2,
+      borderColor: isDark ? '#1F2937' : '#93C5FD',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    detailHeader: {
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    detailIconContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: isDark ? '#1E3A8A' : '#DBEAFE',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 12,
+      borderWidth: 3,
+      borderColor: isDark ? '#3B82F6' : '#60A5FA',
+    },
+    detailIconLarge: {
+      fontSize: 40,
+    },
+    detailStudentName: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: isDark ? '#E5E7EB' : '#1F2937',
+      textAlign: 'center',
+    },
+    detailStudentId: {
+      fontSize: 14,
+      color: isDark ? '#9CA3AF' : '#6B7280',
+      marginTop: 4,
+    },
+    detailDivider: {
+      height: 1,
+      backgroundColor: isDark ? '#1F2937' : '#E5E7EB',
+      marginBottom: 20,
+    },
+    detailBody: {
+      marginBottom: 20,
+    },
+    detailRow: {
+      marginBottom: 18,
+    },
+    detailLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: isDark ? '#60A5FA' : '#3B82F6',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: 4,
+    },
+    detailValue: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: isDark ? '#E5E7EB' : '#1F2937',
+      lineHeight: 22,
+    },
+    detailSubValue: {
+      fontSize: 13,
+      color: isDark ? '#9CA3AF' : '#6B7280',
+      marginTop: 2,
+    },
+    closeButton: {
+      backgroundColor: isDark ? '#1E3A8A' : '#60A5FA',
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    viewDetailArrow: {
+      fontSize: 24,
+      color: isDark ? '#374151' : '#D1D5DB',
+      marginLeft: 8,
     },
   });
 }

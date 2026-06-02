@@ -540,34 +540,37 @@ export default function TeacherAttendanceScreen() {
                           )}
                         </View>
                         <View style={styles.attendanceButtons}>
-                          {['present', 'absent'].map((status) => (
-                            <TouchableOpacity
-                              key={status}
-                              style={[
-                                styles.attendanceButton,
-                                attendanceData[student.userId] === status && styles.attendanceButtonSelected,
-                                status === 'present' && styles.presentButton,
-                                status === 'absent' && styles.absentButton,
-                                (isLocked || isViewingPastAttendance) && { opacity: 0.4 }
-                              ]}
-                              onPress={() => {
-                                if (!isLocked && !isViewingPastAttendance) {
-                                  setAttendanceData(prev => ({
-                                    ...prev,
-                                    [student.userId]: status as 'present' | 'absent'
-                                  }));
-                                }
-                              }}
-                              disabled={isLocked || isViewingPastAttendance}
-                            >
-                              <Text style={[
-                                styles.attendanceButtonText,
-                                attendanceData[student.userId] === status && styles.attendanceButtonTextSelected
-                              ]}>
-                                {status === 'present' ? 'P' : 'A'}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
+                          {['present', 'absent'].map((status) => {
+                            const isSelected = attendanceData[student.userId] === status;
+                            return (
+                              <TouchableOpacity
+                                key={status}
+                                style={[
+                                  styles.attendanceButton,
+                                  status === 'present' ? styles.presentButton : styles.absentButton,
+                                  isSelected && (status === 'present' ? styles.presentButtonSelected : styles.absentButtonSelected),
+                                  (isLocked || isViewingPastAttendance) && { opacity: 0.4 }
+                                ]}
+                                onPress={() => {
+                                  if (!isLocked && !isViewingPastAttendance) {
+                                    setAttendanceData(prev => ({
+                                      ...prev,
+                                      [student.userId]: status as 'present' | 'absent'
+                                    }));
+                                  }
+                                }}
+                                disabled={isLocked || isViewingPastAttendance}
+                              >
+                                <Text style={[
+                                  styles.attendanceButtonText,
+                                  status === 'present' ? styles.presentText : styles.absentText,
+                                  isSelected && styles.selectedText
+                                ]}>
+                                  {status === 'present' ? 'P' : 'A'}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
                         </View>
                       </View>
                     );
@@ -721,13 +724,56 @@ function getStyles(isDark: boolean) {
       marginLeft: 8 
     },
     lockedBadgeText: { fontSize: 10, fontWeight: '600', color: isDark ? '#FCA5A5' : '#DC2626' },
-    attendanceButtons: { flexDirection: 'row', gap: 8 },
-    attendanceButton: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: isDark ? '#374151' : '#D1D5DB' },
-    attendanceButtonSelected: { borderWidth: 2 },
-    presentButton: { backgroundColor: isDark ? '#065F46' : '#ECFDF5' },
-    absentButton: { backgroundColor: isDark ? '#7F1D1D' : '#FEF2F2' },
-    attendanceButtonText: { fontSize: 12, fontWeight: '600', color: isDark ? '#9CA3AF' : '#6B7280' },
-    attendanceButtonTextSelected: { color: isDark ? '#FFFFFF' : '#1F2937' },
+    attendanceButtons: { flexDirection: 'row', gap: 12 },
+    attendanceButton: { 
+      width: 44, 
+      height: 44, 
+      borderRadius: 22, 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      borderWidth: 2,
+    },
+    presentButton: { 
+      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5',
+      borderColor: '#10B981',
+    },
+    presentButtonSelected: { 
+      backgroundColor: '#10B981',
+      borderColor: '#10B981',
+      // Shadow for attractive look
+      shadowColor: '#10B981',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 6,
+      elevation: 6,
+    },
+    absentButton: { 
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2',
+      borderColor: '#EF4444',
+    },
+    absentButtonSelected: { 
+      backgroundColor: '#EF4444',
+      borderColor: '#EF4444',
+      // Shadow for attractive look
+      shadowColor: '#EF4444',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 6,
+      elevation: 6,
+    },
+    attendanceButtonText: { 
+      fontSize: 18, 
+      fontWeight: '800', 
+    },
+    presentText: {
+      color: '#10B981',
+    },
+    absentText: {
+      color: '#EF4444',
+    },
+    selectedText: {
+      color: '#FFFFFF',
+    },
     modalFooter: {
       borderTopWidth: 2,
       borderTopColor: isDark ? '#374151' : '#E5E7EB',

@@ -315,8 +315,8 @@ export default function CreateAssignmentModal({ visible, onClose, onSuccess }: C
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
-      <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
-        <View style={styles.modalContent}>
+      <View style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContent} edges={['bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Create Assignment</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -510,7 +510,7 @@ export default function CreateAssignmentModal({ visible, onClose, onSuccess }: C
 
             <View style={{ height: 20 }} />
           </ScrollView>
-        </View>
+        </SafeAreaView>
 
         {/* Date Pickers */}
         {showStartDatePicker && Platform.OS !== 'web' && (
@@ -699,7 +699,7 @@ export default function CreateAssignmentModal({ visible, onClose, onSuccess }: C
             </View>
           </View>
         </Modal>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
@@ -716,6 +716,7 @@ function getStyles(isDark: boolean) {
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
       maxHeight: '90%',
+      flex: 1,
       paddingBottom: 20
     },
     modalHeader: {
