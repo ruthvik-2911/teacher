@@ -316,6 +316,9 @@ export default function AssignmentsScreen() {
                         📎 {assignment.attachments.length} attachment{assignment.attachments.length > 1 ? 's' : ''}
                       </Text>
                     )}
+                    <View style={styles.viewDetailsButton}>
+                      <Text style={styles.viewDetailsText}>View Details</Text>
+                    </View>
                   </View>
                 </View>
                 <View style={styles.assignmentRight}>
@@ -741,6 +744,20 @@ function getStyles(isDark: boolean) {
       width: SCREEN_WIDTH - 40,
       height: SCREEN_HEIGHT * 0.7,
       maxWidth: '100%',
+    },
+    viewDetailsButton: {
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: isDark ? '#60A5FA' : '#2563EB',
+      borderRadius: 8,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      alignSelf: 'flex-start',
+    },
+    viewDetailsText: {
+      color: isDark ? '#60A5FA' : '#2563EB',
+      fontSize: 12,
+      fontWeight: '600',
     },
   });
 }

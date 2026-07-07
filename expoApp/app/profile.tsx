@@ -11,19 +11,26 @@ export default function ProfileScreen() {
   const styles = getStyles(isDark);
 
   const [user, setUser] = useState<StudentProfile | null>(null);
+  const [userRole, setUserRole] = useState<string>('student');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
+        // Get user role first
+        const userStr = await AsyncStorage.getItem('userData');
+        if (userStr) {
+          const parsed = JSON.parse(userStr);
+          setUserRole(parsed.role || 'student');
+        }
+
         // Fetch student profile from students collection in school database
         const studentProfile = await getStudentProfile();
         if (studentProfile) {
           setUser(studentProfile);
         } else {
           // Fallback to AsyncStorage if API call fails
-          const userStr = await AsyncStorage.getItem('userData');
           if (userStr) setUser(JSON.parse(userStr));
         }
       } catch (error) {
@@ -88,14 +95,49 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.card}>
-          {infoSection('Profile Information', (
+          {infoSection('Account Information', (
             <>
               {infoRow('User ID', user.userId)}
-              {infoRow('Admission ID', studentDetails.admissionNumber || user._id)}
-              {infoRow('Email', user.email)}
+              {userRole === 'student' && infoRow('Admission ID', studentDetails.admissionNumber || user._id)}
               {infoRow('School Code', user.schoolCode)}
               {infoRow('Status', user.isActive ? 'Active' : 'Inactive')}
               {infoRow('Last Login', formatDate(user.lastLogin))}
+            </>
+          ))}
+          
+          {userRole === 'student' && infoSection('Personal Information', (
+            <>
+              {infoRow('Name', user.name?.displayName || '-')}
+              {infoRow('Date of Birth', formatDate(studentDetails.personal?.dateOfBirth))}
+              {infoRow('Gender', studentDetails.personal?.gender)}
+              {infoRow('Blood Group', studentDetails.personal?.bloodGroup)}
+              {infoRow('Nationality', studentDetails.personal?.nationality)}
+            </>
+          ))}
+
+          {userRole === 'student' && infoSection('Academic Details', (
+            <>
+              {infoRow('Class', studentDetails.academic?.currentClass)}
+              {infoRow('Section', studentDetails.academic?.currentSection)}
+              {infoRow('Roll No', studentDetails.academic?.rollNumber)}
+              {infoRow('Academic Year', studentDetails.academic?.academicYear)}
+            </>
+          ))}
+
+          {infoSection('Contact Details', (
+            <>
+              {infoRow('Email', user.email)}
+              {infoRow('Mobile', user.contact?.primaryPhone)}
+              {infoRow('Address', user.address?.permanent?.street || user.address?.permanent?.city)}
+            </>
+          ))}
+
+          {userRole === 'student' && infoSection('Family Details', (
+            <>
+              {infoRow('Father Name', studentDetails.family?.father?.name)}
+              {infoRow('Mother Name', studentDetails.family?.mother?.name)}
+              {infoRow('Guardian', studentDetails.family?.guardian?.name)}
+              {infoRow('Parent Mobile', studentDetails.family?.father?.phone)}
             </>
           ))}
         </View>

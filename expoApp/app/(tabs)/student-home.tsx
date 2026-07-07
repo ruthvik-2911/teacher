@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemedLogo } from '@/components/ThemedLogo';
-import { getStudentMessages, getStudentAssignments, getStudentAttendance, getStudentResults } from '@/src/services/student';
+import { getStudentMessages, getStudentAssignments, getStudentAttendance, getStudentResults, getSchoolInfo, SchoolInfo } from '@/src/services/student';
 import { io, Socket } from 'socket.io-client';
 import ENV from '@/src/config/env';
 
@@ -30,6 +30,7 @@ export default function StudentHomeScreen() {
   const [sosCountdown, setSosCountdown] = useState(5);
   const socketRef = useRef<Socket | null>(null);
   const [userData, setUserData] = useState<any>(null);
+  const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
 
   const loadData = async () => {
     try {
@@ -107,16 +108,18 @@ export default function StudentHomeScreen() {
       console.log('[STUDENT HOME] Fetching attendance for range:', startOfMonth, 'to', endOfMonth);
 
       // Fetch overall attendance stats (no date range) and current month for today's data
-      const [messagesData, assignmentsData, overallAttendanceData, currentMonthAttendanceData, resultsData] = await Promise.all([
+      const [messagesData, assignmentsData, overallAttendanceData, currentMonthAttendanceData, resultsData, schoolInfoData] = await Promise.all([
         getStudentMessages(),
         getStudentAssignments(),
         getStudentAttendance(), // Overall stats - no date range
         getStudentAttendance(startOfMonth, endOfMonth), // Current month for today's data
-        getStudentResults()
+        getStudentResults(),
+        getSchoolInfo()
       ]);
 
       setMessages(messagesData.slice(0, 3));
       setAssignments(assignmentsData.slice(0, 3));
+      setSchoolInfo(schoolInfoData);
 
       // Use overall attendance stats for the percentage display
       setAttendanceStats(overallAttendanceData.stats);
@@ -328,12 +331,20 @@ export default function StudentHomeScreen() {
         }
       >
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <ThemedLogo
-              style={styles.logoIcon}
-              resizeMode="contain"
-            />
-            <Text style={styles.logoText}>GOODSYNK ERP</Text>
+          <View style={[styles.headerLeft, { flex: 1, marginRight: 10 }]}>
+            {schoolInfo?.logo ? (
+              <Image
+                source={{ uri: schoolInfo.logo }}
+                style={styles.logoIcon}
+                resizeMode="contain"
+              />
+            ) : (
+              <ThemedLogo
+                style={styles.logoIcon}
+                resizeMode="contain"
+              />
+            )}
+            <Text style={styles.logoText} numberOfLines={1}>{schoolInfo?.schoolName || 'GOODSYNK ERP'}</Text>
           </View>
           <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/menu')}>
             <Text style={styles.settingsIcon}>☰</Text>

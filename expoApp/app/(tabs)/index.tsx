@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getSchoolInfo, SchoolInfo } from '@/src/services/student';
+import { registerForPushNotificationsAsync, updatePushTokenOnBackend } from '@/src/services/NotificationService';
 
 // Import the separate home screens
 import StudentHomeScreen from './student-home';
@@ -32,6 +33,16 @@ export default function HomeScreen() {
 
       console.log('[HOME] User role:', storedRole);
       setRole(storedRole);
+
+      // Register for push notifications
+      try {
+        const pushToken = await registerForPushNotificationsAsync();
+        if (pushToken) {
+          await updatePushTokenOnBackend(pushToken);
+        }
+      } catch (err) {
+        console.log('Push registration error:', err);
+      }
 
       // Check if user has seen welcome popup
       if (!hasSeenWelcome) {

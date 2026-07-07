@@ -812,10 +812,50 @@ export async function submitAssignment(assignmentId: string, attachments: any[])
 
 export async function getSchoolInfo(): Promise<SchoolInfo | null> {
   try {
-    const response = await api.get('/schools/database/school-info');
-    return response.data.data || response.data || null;
-  } catch (error) {
-    console.error('Error fetching school info:', error);
+    console.log('[STUDENT SERVICE] Fetching school info...');
+
+    // 1. Get schoolCode from AsyncStorage
+    const schoolCode = await AsyncStorage.getItem('schoolCode');
+
+    // 2. Get schoolId and schoolCode from stored user data
+    const userDataStr = await AsyncStorage.getItem('userData');
+    let schoolId = null;
+    let userSchoolCode = null;
+
+    if (userDataStr) {
+      const userData = JSON.parse(userDataStr);
+      schoolId = userData.schoolId?._id || userData.schoolId || userData._schoolId || userData.schoolId;
+      userSchoolCode = userData.schoolCode;
+    }
+
+    // Determine the identifier to fetch (ID is preferred, but Code works as fallback)
+    const schoolIdOrCode = schoolId || schoolCode || userSchoolCode;
+
+    if (!schoolIdOrCode) {
+      console.log('[STUDENT SERVICE] No school ID or Code found in storage');
+      return null;
+    }
+
+    console.log('[STUDENT SERVICE] Fetching school info for:', schoolIdOrCode);
+    const response = await api.get(`/schools/${schoolIdOrCode}/info`);
+    console.log('[STUDENT SERVICE] Raw school info response:', response.data);
+
+    const data = response.data?.data || response.data;
+    if (!data) {
+      console.log('[STUDENT SERVICE] No school data found in response.');
+      return null;
+    }
+
+    const mappedData = {
+      ...data,
+      schoolName: data.name || data.schoolName,
+      schoolCode: data.code || data.schoolCode,
+      logo: data.logoUrl || data.logo,
+    };
+    console.log('[STUDENT SERVICE] Mapped school info:', { schoolName: mappedData.schoolName, logo: mappedData.logo });
+    return mappedData;
+  } catch (error: any) {
+    console.error('[STUDENT SERVICE] Error fetching school info:', error?.response?.data || error?.message);
     return null;
   }
 }
@@ -885,25 +925,87 @@ export async function getStudentProfile(): Promise<StudentProfile | null> {
       throw new Error('Missing userId');
     }
 
-    console.log('[STUDENT SERVICE] Fetching student profile from students collection...');
-    console.log('[STUDENT SERVICE] userId:', userId);
+    const role = user.role || 'student';
+    console.log(`[STUDENT SERVICE] Fetching profile for role: ${role}, userId: ${userId}`);
 
-    // Fetch from students collection using student-specific endpoint
-    // This endpoint queries the students collection in the school database
-    // Path: /api/users/my-profile (student-specific, no userId needed)
-    const response = await api.get('/users/my-profile');
+    if (role === 'teacher') {
+      const response = await api.get(`/users/${userId}`);
+      console.log('[STUDENT SERVICE] Teacher profile response:', response.data);
+      const data = response.data;
+      if (!data) return null;
 
-    console.log('[STUDENT SERVICE] Student profile response:', response.data);
+      const mappedProfile: StudentProfile = {
+        _id: data._id || data.userId || '',
+        userId: data.userId || '',
+        name: {
+          displayName: data.name?.displayName || [data.name?.firstName, data.name?.lastName].filter(Boolean).join(' ') || ''
+        },
+        email: data.email || '',
+        schoolCode: data.schoolCode || user.schoolCode || '',
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        lastLogin: data.lastLogin || '',
+        studentDetails: {}
+      };
+      console.log('[STUDENT SERVICE] Mapped teacher profile:', mappedProfile);
+      return mappedProfile;
+    } else {
+      const response = await api.get('/users/my-profile');
+      console.log('[STUDENT SERVICE] Student profile response:', response.data);
 
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
+      if (response.data?.success && response.data?.data) {
+        const data = response.data.data;
+        const mappedProfile: StudentProfile = {
+          _id: data.studentId || user._id || '',
+          userId: data.studentId || user.userId || '',
+          name: {
+            displayName: data.studentName || user.name?.displayName || user.name || ''
+          },
+          email: data.email || user.email || '',
+          schoolCode: data.schoolCode || user.schoolCode || '',
+          isActive: data.isActive !== undefined ? data.isActive : (user.isActive !== undefined ? user.isActive : true),
+          lastLogin: data.lastLogin || user.lastLogin || '',
+          studentDetails: {
+            admissionNumber: data.enrollmentNo || data.studentId || '',
+            academic: {
+              currentClass: data.class,
+              currentSection: data.section,
+              rollNumber: data.rollNumber,
+              academicYear: data.academicYear
+            },
+            personal: {
+              dateOfBirth: data.dob,
+              gender: data.gender,
+              bloodGroup: data.bloodGroup,
+              nationality: data.nationality
+            },
+            family: {
+              father: { name: data.fatherName, phone: data.parentMobile },
+              mother: { name: data.motherName },
+              guardian: { name: data.guardianName }
+            }
+          },
+          contact: {
+            primaryPhone: data.mobile || data.parentMobile || ''
+          },
+          address: {
+            permanent: {
+              street: data.address,
+              city: data.city,
+              state: data.state,
+              pincode: data.pinCode
+            }
+          }
+        };
+        console.log('[STUDENT SERVICE] Mapped student profile:', mappedProfile);
+        return mappedProfile;
+      }
     }
 
-    return response.data || null;
+    return null;
   } catch (error: any) {
     console.error('[STUDENT SERVICE] Error fetching student profile:', error);
     console.error('[STUDENT SERVICE] Error response:', error?.response?.data);
     console.error('[STUDENT SERVICE] Error status:', error?.response?.status);
     return null;
   }
-}
+}

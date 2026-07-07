@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { ThemedLogo } from '@/components/ThemedLogo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTeacherAssignments, getClasses, Assignment, Class } from '@/src/services/teacher';
-import { getStudentMessages, Message } from '@/src/services/student';
+import { getStudentMessages, Message, getSchoolInfo, SchoolInfo } from '@/src/services/student';
 
 export default function TeacherHomeScreen() {
   const { theme } = useTheme();
@@ -20,6 +20,7 @@ export default function TeacherHomeScreen() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
 
   const loadData = async () => {
     try {
@@ -39,6 +40,14 @@ export default function TeacherHomeScreen() {
       let messagesData: Message[] = [];
       let assignmentsData: Assignment[] = [];
       let classesData: Class[] = [];
+      let schoolData: SchoolInfo | null = null;
+
+      try {
+        schoolData = await getSchoolInfo();
+        console.log('[TEACHER HOME] Fetched school info:', schoolData?.schoolName);
+      } catch (error) {
+        console.error('[TEACHER HOME] Error fetching school info:', error);
+      }
 
       try {
         assignmentsData = await getTeacherAssignments();
@@ -72,6 +81,7 @@ export default function TeacherHomeScreen() {
       setMessages(messagesData.slice(0, 3));
       setAssignments(assignmentsData.slice(0, 5));
       setClasses(classesData);
+      setSchoolInfo(schoolData);
     } catch (error) {
       console.error('Error loading home data:', error);
     } finally {
@@ -123,12 +133,20 @@ export default function TeacherHomeScreen() {
         }
       >
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <ThemedLogo
-              style={styles.logoIcon}
-              resizeMode="contain"
-            />
-            <Text style={styles.logoText}>GOODSYNK ERP</Text>
+          <View style={[styles.headerLeft, { flex: 1, marginRight: 10 }]}>
+            {schoolInfo?.logo ? (
+              <Image
+                source={{ uri: schoolInfo.logo }}
+                style={styles.logoIcon}
+                resizeMode="contain"
+              />
+            ) : (
+              <ThemedLogo
+                style={styles.logoIcon}
+                resizeMode="contain"
+              />
+            )}
+            <Text style={styles.logoText} numberOfLines={1}>{schoolInfo?.schoolName || 'GOODSYNK ERP'}</Text>
           </View>
           <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/menu')}>
             <Text style={styles.settingsIcon}>☰</Text>
